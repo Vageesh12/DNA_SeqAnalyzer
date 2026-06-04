@@ -8,3 +8,4 @@ ORF Detection — scans all 3 reading frames of the sense strand for ATG start c
 Codon Frequency — splits the entire sequence into non-overlapping triplets starting from position 0, counts each unique codon, and renders them as cards with a mini bar chart scaled relative to the most frequent codon. Codons are color-coded — green for standard, amber for Met (start), red for stop codons — using the standard genetic code lookup table hardcoded in the script.
 
 this also works offline after downloading the code file
+a lot of ai script has been used in this 

@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNA Sequence Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f0a;
+    --surface: #111711;
+    --surface2: #161e16;
+    --border: #1f2e1f;
+    --border2: #2a3d2a;
+    --accent: #4ade80;
+    --accent2: #86efac;
+    --accent-dim: rgba(74,222,128,0.12);
+    --accent-dim2: rgba(74,222,128,0.06);
+    --text: #e8f5e8;
+    --text2: #8fa88f;
+    --text3: #4a5e4a;
+    --red: #f87171;
+    --amber: #fbbf24;
+    --blue: #60a5fa;
+    --purple: #c084fc;
+    --teal: #2dd4bf;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+
+  .scanline {
+    position: fixed; inset: 0; pointer-events: none; z-index: 100;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  }
+
+  .wrap { max-width: 860px; margin: 0 auto; }
+
+  header {
+    margin-bottom: 2.5rem;
+    display: flex; align-items: flex-start; gap: 1.2rem;
+  }
+  .helix-icon {
+    width: 44px; height: 44px; flex-shrink: 0; margin-top: 4px;
+  }
+  .helix-icon svg { width: 100%; height: 100%; }
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(1.3rem, 3vw, 1.75rem);
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  h1 span { color: var(--text2); font-weight: 400; }
+  .subtitle { font-size: 0.85rem; color: var(--text2); margin-top: 6px; letter-spacing: 0.01em; }
+
+  .input-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .input-label {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .input-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  textarea {
+    width: 100%; height: 120px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--accent2);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    line-height: 1.8;
+    padding: 0.9rem 1rem;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  textarea::placeholder { color: var(--text3); }
+  textarea:focus { border-color: var(--border2); }
+
+  .row { display: flex; gap: 10px; margin-top: 0.9rem; align-items: center; flex-wrap: wrap; }
+
+  .btn {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #0a0f0a;
+  }
+  .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text2);
+    border: 1px solid var(--border2);
+  }
+  .btn-ghost:hover { border-color: var(--text3); color: var(--text); }
+
+  .sample-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .sample-btn {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    background: var(--accent-dim2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    transition: all 0.15s;
+  }
+  .sample-btn:hover { background: var(--accent-dim); color: var(--accent); border-color: var(--border2); }
+
+  .seq-info {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--text3);
+    margin-left: auto;
+  }
+  .seq-info.valid { color: var(--accent); }
+  .seq-info.invalid { color: var(--red); }
+
+  /* Results */
+  .results { display: none; }
+  .results.show { display: block; animation: fadeUp 0.4s ease; }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.1rem 1.25rem;
+  }
+  .panel.full { grid-column: 1 / -1; }
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .panel-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* GC Meter */
+  .gc-big {
+    font-family: var(--mono);
+    font-size: 2.8rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--accent);
+  }
+  .gc-big sub { font-size: 0.9rem; color: var(--text2); font-weight: 400; }
+  .gc-bar {
+    height: 8px; background: var(--surface2);
+    border-radius: 4px; margin: 0.8rem 0 0.5rem; overflow: hidden;
+  }
+  .gc-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); width: 0; }
+  .base-counts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 0.6rem; }
+  .base-pill {
+    display: flex; align-items: center; gap: 5px;
+    font-family: var(--mono); font-size: 0.72rem;
+    padding: 3px 10px; border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .base-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+  /* Complement */
+  .seq-display {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    line-height: 1.9;
+    word-break: break-all;
+    color: var(--text2);
+  }
+  .comp-wrap { display: flex; flex-direction: column; gap: 4px; }
+  .seq-row { display: flex; align-items: center; gap: 8px; }
+  .seq-tag {
+    font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.1em;
+    color: var(--text3); width: 28px; flex-shrink: 0; text-align: right;
+  }
+  .seq-bases { flex: 1; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.06em; line-height: 1.9; word-break: break-all; }
+  .s5 { color: var(--accent2); }
+  .s3 { color: var(--teal); }
+
+  /* ORF table */
+  .orf-empty { font-size: 0.82rem; color: var(--text2); text-align: center; padding: 1.5rem; }
+  .orf-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px 16px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    align-items: center;
+  }
+  .orf-num { color: var(--accent); font-weight: 700; }
+  .orf-seq { color: var(--text2); font-size: 0.65rem; letter-spacing: 0.05em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .orf-len { color: var(--purple); white-space: nowrap; }
+  .orf-pos { font-size: 0.65rem; color: var(--text3); grid-column: 1 / -1; }
+
+  /* Codon table */
+  .codon-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+  .codon-item {
+    display: flex; flex-direction: column; align-items: center;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 8px;
+    min-width: 52px;
+    transition: border-color 0.15s;
+  }
+  .codon-item:hover { border-color: var(--border2); }
+  .codon-code { font-family: var(--mono); font-size: 0.68rem; color: var(--accent2); font-weight: 700; }
+  .codon-aa { font-size: 0.62rem; color: var(--text3); margin-top: 1px; }
+  .codon-count {
+    font-family: var(--mono); font-size: 0.75rem; color: var(--text);
+    margin-top: 3px; font-weight: 700;
+  }
+  .codon-bar { width: 100%; height: 3px; background: var(--border); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+  .codon-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+
+  @media (max-width: 600px) {
+    .results-grid { grid-template-columns: 1fr; }
+    .panel.full { grid-column: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+<div class="wrap">
+
+<header>
+  <div class="helix-icon">
+    <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M14 4 C14 4, 28 8, 28 14 C28 20, 14 24, 14 30 C14 36, 28 40, 28 40" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      <path d="M30 4 C30 4, 16 8, 16 14 C16 20, 30 24, 30 30 C30 36, 16 40, 16 40" stroke="#2dd4bf" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      <line x1="14" y1="11" x2="30" y2="11" stroke="#1f2e1f" stroke-width="2"/>
+      <line x1="14" y1="17" x2="30" y2="17" stroke="#1f2e1f" stroke-width="2"/>
+      <line x1="14" y1="27" x2="30" y2="27" stroke="#1f2e1f" stroke-width="2"/>
+      <line x1="14" y1="33" x2="30" y2="33" stroke="#1f2e1f" stroke-width="2"/>
+    </svg>
+  </div>
+  <div>
+    <h1>DNA<span>/</span>Sequence <span>Analyzer</span></h1>
+    <p class="subtitle">GC content · codon frequency · ORF detection · complement strand</p>
+  </div>
+</header>
+
+<div class="input-panel">
+  <div class="input-label">input sequence</div>
+  <textarea id="seqInput" placeholder="Paste or type your DNA sequence here...  e.g. ATGCGTACGATCGATCG..."></textarea>
+  <div class="row">
+    <button class="btn btn-primary" onclick="analyze()">Analyze</button>
+    <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
+    <div class="sample-btns">
+      <button class="sample-btn" onclick="loadSample('insulin')">Insulin fragment</button>
+      <button class="sample-btn" onclick="loadSample('short')">Short ORF test</button>
+      <button class="sample-btn" onclick="loadSample('random')">Random 60bp</button>
+    </div>
+    <span class="seq-info" id="seqInfo">— bp</span>
+  </div>
+</div>
+
+<div class="results" id="results">
+  <div class="results-grid">
+
+    <div class="panel">
+      <div class="panel-title">GC content</div>
+      <div class="gc-big" id="gcVal">0<sub>%</sub></div>
+      <div class="gc-bar"><div class="gc-fill" id="gcBar"></div></div>
+      <div class="base-counts" id="baseCounts"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Complement strand</div>
+      <div class="comp-wrap" id="compWrap"></div>
+    </div>
+
+    <div class="panel full">
+      <div class="panel-title">Open reading frames</div>
+      <div id="orfList"></div>
+    </div>
+
+    <div class="panel full">
+      <div class="panel-title">Codon frequency</div>
+      <div class="codon-grid" id="codonGrid"></div>
+    </div>
+
+  </div>
+</div>
+
+</div>
+<script>
+const SAMPLES = {
+  insulin: "ATGGCCCTGTGGATGCGCCTCCTGCCCCTGCTGGCGCTGCTGGCCCTCTGGGGACCTGACCCAGCCGCAGCCTTTGTGAACCAACACCTGTGCGGCTCACACCTGGTGGAAGCTCTCTACCTAGTGTGCGGGGAACGAGGCTTCTTCTACACACCCAAGACCCGCCGGGAGGCAGAGGACCTGCAGGGTGAGCCAACTGCCCATTGCTGCCCCTGGCCGCCCCCAGCCACCCCCTGCTCCTGGCGCTCCCACCCAGCATGGGCAGAAGGGGGCAGGAGG",
+  short: "ATGATCGTACGATGAAATTTGGATCCATGTTTAAATGA",
+  random: null
+};
+
+function randomSeq(len) {
+  const b = ['A','T','G','C'];
+  return Array.from({length:len}, () => b[Math.floor(Math.random()*4)]).join('');
+}
+
+function loadSample(name) {
+  const seq = name === 'random' ? randomSeq(60) : SAMPLES[name];
+  document.getElementById('seqInput').value = seq;
+  updateInfo(seq);
+}
+
+function updateInfo(raw) {
+  const seq = raw.toUpperCase().replace(/\s/g,'');
+  const info = document.getElementById('seqInfo');
+  const valid = /^[ATGCN]*$/.test(seq) && seq.length > 0;
+  info.textContent = seq.length ? `${seq.length} bp` : '— bp';
+  info.className = 'seq-info' + (seq.length === 0 ? '' : valid ? ' valid' : ' invalid');
+  if (!valid && seq.length > 0) info.textContent += ' · invalid chars';
+}
+
+document.getElementById('seqInput').addEventListener('input', e => updateInfo(e.target.value));
+
+function complement(base) {
+  return {A:'T',T:'A',G:'C',C:'G',N:'N'}[base] || base;
+}
+function complementStrand(seq) {
+  return seq.split('').map(complement).join('');
+}
+function reverseComplement(seq) {
+  return complementStrand(seq).split('').reverse().join('');
+}
+
+const CODON_TABLE = {
+  TTT:'Phe',TTC:'Phe',TTA:'Leu',TTG:'Leu',
+  CTT:'Leu',CTC:'Leu',CTA:'Leu',CTG:'Leu',
+  ATT:'Ile',ATC:'Ile',ATA:'Ile',ATG:'Met*',
+  GTT:'Val',GTC:'Val',GTA:'Val',GTG:'Val',
+  TCT:'Ser',TCC:'Ser',TCA:'Ser',TCG:'Ser',
+  CCT:'Pro',CCC:'Pro',CCA:'Pro',CCG:'Pro',
+  ACT:'Thr',ACC:'Thr',ACA:'Thr',ACG:'Thr',
+  GCT:'Ala',GCC:'Ala',GCA:'Ala',GCG:'Ala',
+  TAT:'Tyr',TAC:'Tyr',TAA:'Stop',TAG:'Stop',
+  CAT:'His',CAC:'His',CAA:'Gln',CAG:'Gln',
+  AAT:'Asn',AAC:'Asn',AAA:'Lys',AAG:'Lys',
+  GAT:'Asp',GAC:'Asp',GAA:'Glu',GAG:'Glu',
+  TGT:'Cys',TGC:'Cys',TGA:'Stop',TGG:'Trp',
+  CGT:'Arg',CGC:'Arg',CGA:'Arg',CGG:'Arg',
+  AGT:'Ser',AGC:'Ser',AGA:'Arg',AGG:'Arg',
+  GGT:'Gly',GGC:'Gly',GGA:'Gly',GGG:'Gly'
+};
+
+function findORFs(seq) {
+  const orfs = [];
+  for (let frame = 0; frame < 3; frame++) {
+    let inORF = false, start = 0;
+    for (let i = frame; i + 2 < seq.length; i += 3) {
+      const codon = seq.slice(i, i+3);
+      if (!inORF && codon === 'ATG') { inORF = true; start = i; }
+      else if (inORF && ['TAA','TAG','TGA'].includes(codon)) {
+        const orfSeq = seq.slice(start, i+3);
+        if (orfSeq.length >= 30) {
+          orfs.push({ start: start+1, end: i+3, frame: frame+1, seq: orfSeq, len: orfSeq.length });
+        }
+        inORF = false;
+      }
+    }
+  }
+  return orfs.sort((a,b) => b.len - a.len);
+}
+
+function analyze() {
+  const raw = document.getElementById('seqInput').value;
+  const seq = raw.toUpperCase().replace(/\s/g,'');
+  if (!seq || !/^[ATGCN]+$/.test(seq)) { alert('Please enter a valid DNA sequence (A, T, G, C only).'); return; }
+
+  const counts = {A:0,T:0,G:0,C:0,N:0};
+  for (const b of seq) { if (counts[b] !== undefined) counts[b]++; }
+  const gc = ((counts.G + counts.C) / seq.length * 100).toFixed(1);
+
+  // GC panel
+  document.getElementById('gcVal').innerHTML = `${gc}<sub>%</sub>`;
+  setTimeout(() => { document.getElementById('gcBar').style.width = gc + '%'; }, 50);
+
+  const baseColors = {A:'#f87171',T:'#fbbf24',G:'#4ade80',C:'#60a5fa',N:'#a1a1aa'};
+  document.getElementById('baseCounts').innerHTML = ['A','T','G','C'].map(b =>
+    `<div class="base-pill"><div class="base-dot" style="background:${baseColors[b]}"></div>${b}: ${counts[b]}</div>`
+  ).join('');
+
+  // Complement
+  const comp = complementStrand(seq);
+  const revComp = reverseComplement(seq);
+  const display = s => s.length > 80 ? s.slice(0,40)+'···'+s.slice(-20) : s;
+  document.getElementById('compWrap').innerHTML = `
+    <div class="seq-row"><span class="seq-tag">5'</span><span class="seq-bases s5">${display(seq)}</span><span class="seq-tag">3'</span></div>
+    <div class="seq-row" style="padding:2px 0;font-size:0.6rem;color:var(--text3);padding-left:36px;">|||||||||||||||||||||||</div>
+    <div class="seq-row"><span class="seq-tag">3'</span><span class="seq-bases s3">${display(comp)}</span><span class="seq-tag">5'</span></div>
+    <div style="margin-top:0.8rem;padding-top:0.8rem;border-top:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:0.62rem;color:var(--text3);margin-bottom:4px;letter-spacing:0.08em;">REV. COMPLEMENT</div>
+      <div class="seq-bases" style="color:var(--purple);font-size:0.7rem;">${display(revComp)}</div>
+    </div>`;
+
+  // ORFs
+  const orfs = findORFs(seq);
+  if (orfs.length === 0) {
+    document.getElementById('orfList').innerHTML = `<div class="orf-empty">No ORFs ≥ 30bp found (ATG...stop codon)</div>`;
+  } else {
+    document.getElementById('orfList').innerHTML = orfs.slice(0,8).map((o,i) =>
+      `<div class="orf-item">
+        <span class="orf-num">#${i+1}</span>
+        <span class="orf-seq">${o.seq.slice(0,50)}${o.seq.length>50?'…':''}</span>
+        <span class="orf-len">${o.len}bp / ${Math.floor(o.len/3)}aa</span>
+        <span class="orf-pos">frame +${o.frame} · pos ${o.start}–${o.end}</span>
+      </div>`
+    ).join('');
+  }
+
+  // Codons
+  const codonCounts = {};
+  for (let i = 0; i + 2 < seq.length; i += 3) {
+    const c = seq.slice(i, i+3);
+    if (c.length === 3) codonCounts[c] = (codonCounts[c] || 0) + 1;
+  }
+  const maxCount = Math.max(...Object.values(codonCounts), 1);
+  const sorted = Object.entries(codonCounts).sort((a,b) => b[1]-a[1]);
+  document.getElementById('codonGrid').innerHTML = sorted.map(([codon, count]) => {
+    const aa = CODON_TABLE[codon] || '?';
+    const pct = (count/maxCount*100).toFixed(0);
+    const isStop = aa === 'Stop';
+    const color = isStop ? 'var(--red)' : aa.includes('*') ? 'var(--amber)' : 'var(--accent)';
+    return `<div class="codon-item">
+      <span class="codon-code" style="color:${color}">${codon}</span>
+      <span class="codon-aa">${aa.replace('*','')}</span>
+      <span class="codon-count">${count}</span>
+      <div class="codon-bar"><div class="codon-fill" style="width:${pct}%;background:${color}"></div></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('results').classList.add('show');
+  document.getElementById('results').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function clearAll() {
+  document.getElementById('seqInput').value = '';
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('seqInfo').textContent = '— bp';
+  document.getElementById('seqInfo').className = 'seq-info';
+  document.getElementById('gcBar').style.width = '0';
+}
+</script>
+</body>
+</html>

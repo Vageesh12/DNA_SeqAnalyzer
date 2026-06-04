@@ -1,7 +1,5 @@
 # DNA_SeqAnalyzer
 
-# LIVE DEMO LINK: https://github.com/Vageesh12/DNA_SeqAnalyzer/blob/main/dna-analyzer.html
-
 The analyzer is a single HTML file with no external dependencies — all logic runs in the browser using vanilla JavaScript.
 When you paste a DNA sequence and hit Analyze, the input is sanitized (whitespace stripped, uppercased) and validated against [ATGCN] characters before any processing begins.
 GC Content — counts occurrences of G and C bases, divides by total sequence length, and expresses it as a percentage. Also tallies individual base counts (A, T, G, C) displayed as colored pills.
